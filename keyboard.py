@@ -42,52 +42,48 @@ def right():
     GPIO.output(36, 1)
     GPIO.output(38, 1)
 
-class _Getch:
-    def __call__(self):
-            fd = sys.stdin.fileno()
-            old_settings = termios.tcgetattr(fd)
-            try:
-                tty.setraw(sys.stdin.fileno())
-                ch = sys.stdin.read(3)
-            finally:
-                termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-            return ch
-
-def get():
-        inkey = _Getch()
-        while(1):
-                k=inkey()
-                if k!='':break
-        if k=='\x1b[A':
-                print "up"
-                stop()
-                forward()
-                #time.sleep(1)
-                #stop()
-        elif k=='\x1b[B':
-                print "down"
-                stop()
-        elif k=='\x1b[C':
-                print "right"
-                stop()
-                right()
-                #time.sleep(0.5)
-                #stop()
-        elif k=='\x1b[D':
-                print "left"
-                stop()
-                left()
-                #time.sleep(0.5)
-                #stop()
-        else:
-                print "not an arrow key!"
-                stop()
-                exit(0)
-
 def main():
-        init();
+    init();
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    def say(msg):
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        print(msg)
+        tty.setraw(sys.stdin.fileno())
+        
+    try:
+        tty.setraw(sys.stdin.fileno())
         while True:
-                get()
+            ch = sys.stdin.read(1)
+            if ch == '\x1b':
+                key = sys.stdin.read(2)
+                if key == '[A':
+                    say('up')
+                    stop()
+                    forward()
+                elif key == '[B':
+                    say('down')
+                    stop()
+                    backward()
+                elif key == '[C':
+                    say('right')
+                    stop()
+                    right()
+                elif key == '[D':
+                    say('left')
+                    stop()
+                    left()
+
+            else:
+                say("%s: %02x" % (ch, ord(ch)))
+                if ch == ' ':
+                    stop()
+                elif ch == 'q':
+                    stop()
+                    termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+                    exit(0)
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
 if __name__=='__main__':
-        main()
+    main()
