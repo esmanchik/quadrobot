@@ -1,9 +1,28 @@
 import serial
+import time
 
-port = serial.Serial()
-port.baudrate = 9600
-port.port = 5
-port.open()
+def init(portNumber):
+    port = serial.Serial()
+    port.baudrate = 9600
+    port.port = portNumber
+    port.open()
+    return port
+
+def xchg(port, cmd):
+    port.write(cmd)
+    m = port.read(4)
+    d = 0
+    for i in range(0, 4):
+        d |= m[i] << (i * 4)
+    return d
+
+def lookaround(port):
+    for i in range(0, 9):
+        print(xchg(port, [11]))
+        time.sleep(0.05)
+        print(xchg(port, [9]))
+
+port = init(4)
 
 try:
    # Python2
@@ -23,17 +42,19 @@ def key(event):
     elif len(event.char) == 1:
       # charcters like []/.,><#$ also Return and ctrl/key
         print( 'Punctuation Key %r (%r)' % (event.keysym, event.char) )
+        if event.char == ' ':
+            lookaround(port)
     else:
       # f1 to f12, shift keys, caps lock, Home, End, Delete ...
         print( 'Special Key %r' % event.keysym )
         if event.keysym == 'Up':
-            port.write([15])
+            print(xchg(port, [15]))
         elif event.keysym == 'Left':
-            port.write([13])
+            print(xchg(port, [13]))
         elif event.keysym == 'Right':
-            port.write([11])
+            print(xchg(port, [11]))
         else:
-            port.write([9])
+            print(xchg(port, [9]))
 
 root = tk.Tk()
 print( "Press a key (Escape key to exit):" )
