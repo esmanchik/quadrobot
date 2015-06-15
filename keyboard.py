@@ -1,89 +1,80 @@
-import sys,tty,termios
-import RPi.GPIO as GPIO
+import serial
 import time
+import sys
 
-PINS = [13, 15, 16, 18, 35, 36, 37, 38]
+def stop(port):
+    for i in range(0, 8):
+        port.write("\x0c" + chr(i) + "\x00")
+    port.write("\x0e")
 
-def init():
-    GPIO.setmode(GPIO.BOARD)
-    for pin in PINS:
-        GPIO.setup(pin, GPIO.OUT)
+def forward(port):
+    for i in [1, 3, 5, 7]:
+        port.write("\x0c" + chr(i) + "\x01")
+    port.write("\x0e")
 
-def test(pin): 
-    GPIO.output(pin, 1)
-    time.sleep(1)
-    GPIO.output(pin, 0)
+def backward(port):
+    for i in [0, 2, 4, 6]:
+        port.write("\x0c" + chr(i) + "\x01")
+    port.write("\x0e")
 
-def stop():
-    for pin in PINS:
-        GPIO.output(pin, 0)
+def right(port):
+    for i in [1, 3, 4, 6]:
+        port.write("\x0c" + chr(i) + "\x01")
+    port.write("\x0e")
 
-def forward():
-    GPIO.output(15, 1)
-    GPIO.output(18, 1)
-    GPIO.output(36, 1)
-    GPIO.output(38, 1)
+def left(port):
+    for i in [0, 2, 5, 7]:
+        port.write("\x0c" + chr(i) + "\x01")
+    port.write("\x0e")
 
-def backward():
-    GPIO.output(13, 1)
-    GPIO.output(16, 1)
-    GPIO.output(35, 1)
-    GPIO.output(37, 1)
+def init(portNumber):
+    port = serial.Serial()
+    port.baudrate = 9600
+    port.port = portNumber
+    port.open()
+    return port
 
-def left():
-    GPIO.output(15, 1)
-    GPIO.output(18, 1)
-    GPIO.output(35, 1)
-    GPIO.output(37, 1)
+print( "Enter port number: " )
+num = sys.stdin.read(1)
+print( "Opening port " + num )
+port = init(int(num))
 
-def right():
-    GPIO.output(13, 1)
-    GPIO.output(16, 1)
-    GPIO.output(36, 1)
-    GPIO.output(38, 1)
+try:
+   # Python2
+    import Tkinter as tk
+except ImportError:
+    # Python3
+    import tkinter as tk
 
-def main():
-    init();
-    fd = sys.stdin.fileno()
-    old_settings = termios.tcgetattr(fd)
-    def say(msg):
-        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-        print(msg)
-        tty.setraw(sys.stdin.fileno())
-        
-    try:
-        tty.setraw(sys.stdin.fileno())
-        while True:
-            ch = sys.stdin.read(1)
-            if ch == '\x1b':
-                key = sys.stdin.read(2)
-                if key == '[A':
-                    say('up')
-                    stop()
-                    forward()
-                elif key == '[B':
-                    say('down')
-                    stop()
-                    backward()
-                elif key == '[C':
-                    say('right')
-                    stop()
-                    right()
-                elif key == '[D':
-                    say('left')
-                    stop()
-                    left()
+def key(event): 
+    stop(port)
+    """shows key or tk code for the key"""
+    if event.keysym == 'Escape':
+        port.close()
+        root.destroy()
+    if event.char == event.keysym:
+     # normal number and letter characters
+        print( 'Normal Key %r' % event.char )
+    elif len(event.char) == 1:
+      # charcters like []/.,><#$ also Return and ctrl/key
+        print( 'Punctuation Key %r (%r)' % (event.keysym, event.char) )
+        if event.char == ' ':
+            stop(port)
+    else:
+      # f1 to f12, shift keys, caps lock, Home, End, Delete ...
+        print( 'Special Key %r' % event.keysym )
+        if event.keysym == 'Up':
+            forward(port)
+        elif event.keysym == 'Down':
+            backward(port)
+        elif event.keysym == 'Left':
+            left(port)
+        elif event.keysym == 'Right':
+            right(port)
 
-            else:
-                say("%s: %02x" % (ch, ord(ch)))
-                if ch == ' ':
-                    stop()
-                elif ch == 'q':
-                    stop()
-                    termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-                    exit(0)
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-
-if __name__=='__main__':
-    main()
+root = tk.Tk()
+print( "Press a key (Escape key to exit):" )
+root.bind_all('<Key>', key)
+# don't show the tk window
+root.withdraw()
+root.mainloop()
