@@ -1,44 +1,25 @@
-import serial
 import time
 import sys
+import socket
+
+port = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+port.connect(("192.168.1.3", 8080))
 
 def stop(port):
-    for i in range(0, 8):
-        port.write("\x0c" + chr(i) + "\x00")
-    port.write("\x0e")
+    port.send("GET /stop HTTP/1.0\r\n\r\n")
 
 def forward(port):
-    for i in [1, 3, 5, 7]:
-        port.write("\x0c" + chr(i) + "\x01")
-    port.write("\x0e")
+    port.send("GET /forward HTTP/1.0\r\n\r\n")
 
 def backward(port):
-    for i in [0, 2, 4, 6]:
-        port.write("\x0c" + chr(i) + "\x01")
-    port.write("\x0e")
+    port.send("GET /backward HTTP/1.0\r\n\r\n")
 
 def right(port):
-    for i in [1, 3, 4, 6]:
-        port.write("\x0c" + chr(i) + "\x01")
-    port.write("\x0e")
+    port.send("GET /left HTTP/1.0\r\n\r\n")
 
 def left(port):
-    for i in [0, 2, 5, 7]:
-        port.write("\x0c" + chr(i) + "\x01")
-    port.write("\x0e")
-
-def init(portNumber):
-    port = serial.Serial()
-    port.baudrate = 9600
-    port.port = portNumber
-    port.open()
-    return port
-
-print( "Enter port number: " )
-num = sys.stdin.read(1)
-print( "Opening port " + num )
-port = init(int(num))
-
+    port.send("GET /right HTTP/1.0\r\n\r\n")
+    
 try:
    # Python2
     import Tkinter as tk
